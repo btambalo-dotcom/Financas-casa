@@ -1,0 +1,35 @@
+{% extends "layout.html" %}
+{% set title = "Comprovantes" %}
+{% set header = "Comprovantes" %}
+{% set subtitle = "Fotos/PDF anexados aos lançamentos" %}
+
+{% block content %}
+<div class="card shadow-sm">
+  <div class="table-responsive">
+    <table class="table table-hover mb-0 align-middle">
+      <thead class="table-light">
+        <tr>
+          <th>Data</th>
+          <th>Categoria</th>
+          <th>Descrição</th>
+          <th class="text-end">Valor</th>
+          <th>Arquivo</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for t in txs %}
+        <tr>
+          <td>{{ t.txn_date }}</td>
+          <td>{{ t.category.name }}</td>
+          <td class="text-muted">{{ t.description or "—" }}</td>
+          <td class="text-end fw-semibold">${{ '%.2f'|format(t.amount) }}</td>
+          <td><a href="{{ url_for('bp.uploads', filename=t.receipt_filename) }}" target="_blank">Abrir</a></td>
+        </tr>
+        {% else %}
+          <tr><td colspan="5" class="text-muted p-3">Sem comprovantes ainda.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

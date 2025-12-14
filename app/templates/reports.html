@@ -1,0 +1,68 @@
+{% extends "layout.html" %}
+{% set title = "Relatórios" %}
+{% set header = "Relatórios" %}
+{% set subtitle = "Resumo por categoria e por conta" %}
+
+{% block header_actions %}
+  <a class="btn btn-outline-secondary" href="{{ url_for('bp.reports_export', fmt='csv', month=month) }}"><i class="bi bi-download me-1"></i>CSV</a>
+  <a class="btn btn-outline-secondary" href="{{ url_for('bp.reports_export', fmt='xlsx', month=month) }}"><i class="bi bi-file-earmark-excel me-1"></i>Excel</a>
+  <a class="btn btn-outline-secondary" href="{{ url_for('bp.reports_export', fmt='pdf', month=month) }}"><i class="bi bi-filetype-pdf me-1"></i>PDF</a>
+{% endblock %}
+
+{% block content %}
+<form class="row g-2 align-items-end mb-3" method="get" action="{{ url_for('bp.reports') }}">
+  <div class="col-auto">
+    <label class="form-label">Mês (YYYY-MM)</label>
+    <input class="form-control" name="month" value="{{ month }}">
+  </div>
+  <div class="col-auto">
+    <button class="btn btn-primary"><i class="bi bi-search me-1"></i>Ver</button>
+  </div>
+</form>
+
+<div class="row g-3">
+  <div class="col-lg-6">
+    <div class="card shadow-sm">
+      <div class="card-header bg-white fw-semibold">Por categoria</div>
+      <div class="table-responsive">
+        <table class="table mb-0 align-middle">
+          <thead class="table-light"><tr><th>Tipo</th><th>Categoria</th><th class="text-end">Total</th></tr></thead>
+          <tbody>
+            {% for typ, cat, total in cat_rows %}
+              <tr>
+                <td><span class="badge text-bg-{{ 'success' if typ=='income' else 'danger' }}">{{ 'Receita' if typ=='income' else 'Despesa' }}</span></td>
+                <td>{{ cat }}</td>
+                <td class="text-end fw-semibold">${{ '%.2f'|format(total) }}</td>
+              </tr>
+            {% else %}
+              <tr><td colspan="3" class="text-muted p-3">Sem dados.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-lg-6">
+    <div class="card shadow-sm">
+      <div class="card-header bg-white fw-semibold">Por conta</div>
+      <div class="table-responsive">
+        <table class="table mb-0 align-middle">
+          <thead class="table-light"><tr><th>Tipo</th><th>Conta</th><th class="text-end">Total</th></tr></thead>
+          <tbody>
+            {% for typ, acc, total in acc_rows %}
+              <tr>
+                <td><span class="badge text-bg-{{ 'success' if typ=='income' else 'danger' }}">{{ 'Receita' if typ=='income' else 'Despesa' }}</span></td>
+                <td>{{ acc }}</td>
+                <td class="text-end fw-semibold">${{ '%.2f'|format(total) }}</td>
+              </tr>
+            {% else %}
+              <tr><td colspan="3" class="text-muted p-3">Sem dados.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

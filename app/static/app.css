@@ -1,0 +1,17 @@
+:root{ --sidebar-w: 270px; }
+body{ background:#f6f7fb; }
+.sidebar{
+  width: var(--sidebar-w);
+  min-height: 100vh;
+  background: #0b1220;
+  color: #e6e8ee;
+  display:flex;
+  flex-direction:column;
+}
+.sidebar .brand{line-height:1.1}
+.side-link{ color:#cfd6e6; border-radius:12px; padding:10px 12px; }
+.side-link:hover{ background: rgba(255,255,255,.08); color:#fff; }
+.topbar{ position: sticky; top:0; z-index: 10; }
+.card{ border: 1px solid rgba(0,0,0,.06); border-radius: 14px; }
+.table{ margin-bottom:0; }
+@media (max-width: 992px){ .sidebar{display:none;} }

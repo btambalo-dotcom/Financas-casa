@@ -1,0 +1,52 @@
+{% extends "layout.html" %}
+{% set title = "Importar CSV" %}
+{% set header = "Importar CSV" %}
+{% set subtitle = "Conciliação: traga extrato do banco (CSV) e gere lançamentos" %}
+
+{% block content %}
+<div class="row g-3">
+  <div class="col-lg-5">
+    <div class="card shadow-sm">
+      <div class="card-header bg-white fw-semibold">Upload do CSV</div>
+      <div class="card-body">
+        <form method="post" enctype="multipart/form-data">
+          <div class="mb-3">
+            <label class="form-label">Arquivo CSV</label>
+            <input class="form-control" type="file" name="file" accept=".csv" required>
+            <div class="form-text">Colunas esperadas: date, description, amount (opcional: type, account, category)</div>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Nome da conta (se o CSV não tiver)</label>
+            <input class="form-control" name="account_name" placeholder="Conta Corrente">
+          </div>
+          <button class="btn btn-outline-primary" name="preview" value="1">Pré-visualizar</button>
+          <button class="btn btn-primary" name="do_import" value="1" onclick="return confirm('Importar todos os registros do CSV?');">Importar</button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-lg-7">
+    <div class="card shadow-sm">
+      <div class="card-header bg-white fw-semibold">Prévia (até 20 linhas)</div>
+      <div class="table-responsive">
+        <table class="table table-sm mb-0">
+          <thead class="table-light"><tr><th>#</th><th>date</th><th>description</th><th>amount</th></tr></thead>
+          <tbody>
+            {% for r in preview %}
+              <tr>
+                <td>{{ loop.index }}</td>
+                <td>{{ r.get('date') or r.get('Date') or r.get('DATA') }}</td>
+                <td>{{ r.get('description') or r.get('Description') or r.get('HISTORICO') }}</td>
+                <td>{{ r.get('amount') or r.get('Amount') or r.get('VALOR') }}</td>
+              </tr>
+            {% else %}
+              <tr><td colspan="4" class="text-muted p-3">Envie um CSV para ver a prévia.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

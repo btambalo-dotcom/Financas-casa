@@ -1,0 +1,75 @@
+{% extends "layout.html" %}
+{% set title = "Lançamento" %}
+{% set header = "Lançamento" %}
+{% set subtitle = "Lance em poucos segundos, com comprovante" %}
+
+{% block content %}
+<div class="card shadow-sm">
+  <div class="card-body">
+    <form method="post" enctype="multipart/form-data">
+      <div class="row g-3">
+        <div class="col-md-3">
+          <label class="form-label">Tipo</label>
+          <select class="form-select" name="txn_type">
+            <option value="expense" {% if existing and existing.txn_type=='expense' %}selected{% endif %}>Despesa</option>
+            <option value="income" {% if existing and existing.txn_type=='income' %}selected{% endif %}>Receita</option>
+          </select>
+        </div>
+        <div class="col-md-3">
+          <label class="form-label">Data</label>
+          <input class="form-control" type="date" name="txn_date" value="{{ existing.txn_date if existing else '' }}">
+        </div>
+        <div class="col-md-3">
+          <label class="form-label">Conta</label>
+          <select class="form-select" name="account_id" required>
+            <option value="">Selecione...</option>
+            {% for a in accounts %}
+              <option value="{{ a.id }}" {% if existing and existing.account_id==a.id %}selected{% endif %}>{{ a.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-md-3">
+          <label class="form-label">Valor</label>
+          <input class="form-control" type="number" step="0.01" name="amount" placeholder="0.00" value="{{ existing.amount if existing else '' }}" required>
+        </div>
+
+        <div class="col-md-6">
+          <label class="form-label">Categoria</label>
+          <select class="form-select" name="category_id" required>
+            <option value="">Selecione...</option>
+            <optgroup label="Despesas">
+              {% for c in cats_expense %}
+                <option value="{{ c.id }}" {% if existing and existing.category_id==c.id %}selected{% endif %}>{{ c.name }}</option>
+              {% endfor %}
+            </optgroup>
+            <optgroup label="Receitas">
+              {% for c in cats_income %}
+                <option value="{{ c.id }}" {% if existing and existing.category_id==c.id %}selected{% endif %}>{{ c.name }}</option>
+              {% endfor %}
+            </optgroup>
+          </select>
+          <div class="form-text">Cadastre mais em Configurações (admin).</div>
+        </div>
+
+        <div class="col-md-6">
+          <label class="form-label">Descrição</label>
+          <input class="form-control" name="description" placeholder="Ex: Publix, gasolina, aluguel..." value="{{ existing.description if existing else '' }}">
+        </div>
+
+        <div class="col-md-6">
+          <label class="form-label">Comprovante (opcional)</label>
+          <input class="form-control" type="file" name="receipt" accept="image/*,application/pdf">
+          {% if existing and existing.receipt_filename %}
+            <div class="form-text">Atual: <a target="_blank" href="{{ url_for('bp.uploads', filename=existing.receipt_filename) }}">Abrir</a></div>
+          {% endif %}
+        </div>
+
+        <div class="col-12 d-flex gap-2">
+          <button class="btn btn-primary"><i class="bi bi-check2-circle me-1"></i>Salvar</button>
+          <a class="btn btn-outline-secondary" href="{{ url_for('bp.transactions_list') }}">Voltar</a>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

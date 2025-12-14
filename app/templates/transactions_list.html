@@ -1,0 +1,74 @@
+{% extends "layout.html" %}
+{% set title = "Lançamentos" %}
+{% set header = "Lançamentos" %}
+{% set subtitle = "Receitas e despesas do mês selecionado" %}
+
+{% block header_actions %}
+  <a class="btn btn-primary" href="{{ url_for('bp.transactions_new') }}"><i class="bi bi-plus-circle me-1"></i>Novo</a>
+{% endblock %}
+
+{% block content %}
+<form class="row g-2 align-items-end mb-3" method="get" action="{{ url_for('bp.transactions_list') }}">
+  <div class="col-auto">
+    <label class="form-label">Mês (YYYY-MM)</label>
+    <input class="form-control" name="month" value="{{ month }}">
+  </div>
+  <div class="col-auto">
+    <button class="btn btn-outline-secondary"><i class="bi bi-search me-1"></i>Filtrar</button>
+  </div>
+</form>
+
+<div class="card shadow-sm">
+  <div class="table-responsive">
+    <table class="table table-hover mb-0 align-middle">
+      <thead class="table-light">
+        <tr>
+          <th>Data</th>
+          <th>Tipo</th>
+          <th>Categoria</th>
+          <th>Conta</th>
+          <th>Descrição</th>
+          <th class="text-end">Valor</th>
+          <th>Comprovante</th>
+          <th class="text-end">Ações</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for t in txs %}
+        <tr>
+          <td>{{ t.txn_date }}</td>
+          <td>
+            {% if t.txn_type=='expense' %}
+              <span class="badge text-bg-danger">Despesa</span>
+            {% else %}
+              <span class="badge text-bg-success">Receita</span>
+            {% endif %}
+          </td>
+          <td>{{ t.category.name }}</td>
+          <td>{{ t.account.name }}</td>
+          <td class="text-muted">{{ t.description or "—" }}</td>
+          <td class="text-end fw-semibold">{{ '-' if t.txn_type=='expense' else '+' }}${{ '%.2f'|format(t.amount) }}</td>
+          <td>
+            {% if t.receipt_filename %}
+              <a href="{{ url_for('bp.uploads', filename=t.receipt_filename) }}" target="_blank">Abrir</a>
+            {% else %}
+              <span class="text-muted">—</span>
+            {% endif %}
+          </td>
+          <td class="text-end">
+            <a class="btn btn-sm btn-outline-secondary" href="{{ url_for('bp.transactions_edit', tid=t.id) }}"><i class="bi bi-pencil"></i></a>
+            {% if session.get('role') == 'admin' %}
+            <form class="d-inline" method="post" action="{{ url_for('bp.transactions_delete', tid=t.id) }}" onsubmit="return confirm('Excluir este lançamento?');">
+              <button class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button>
+            </form>
+            {% endif %}
+          </td>
+        </tr>
+        {% else %}
+          <tr><td colspan="8" class="text-muted p-3">Sem lançamentos neste mês.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}
