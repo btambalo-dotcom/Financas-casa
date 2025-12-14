@@ -38,3 +38,19 @@ V4:
 - Despesas/Receitas recorrentes (geram automaticamente todo mês)
 
 IMPORTANTE: Se você já tiver um finance.db antigo e quiser começar limpo, apague o arquivo finance.db na pasta do projeto.
+
+
+
+DEPLOY NO RENDER (Plano Pago)
+- Build Command:
+  pip install -r requirements.txt
+- Start Command (recomendado):
+  gunicorn wsgi:app --bind 0.0.0.0:$PORT --workers 2 --threads 4 --timeout 120
+
+Env Vars:
+- FLASK_ENV=production
+- SECRET_KEY=uma-chave-segura
+
+Notas:
+- Não suba a pasta .venv nem o arquivo finance.db para o GitHub.
+- Este projeto inclui wsgi.py + Procfile + render.yaml para facilitar.
