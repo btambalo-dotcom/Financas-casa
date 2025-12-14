@@ -14,4 +14,6 @@ body{ background:#f6f7fb; }
 .topbar{ position: sticky; top:0; z-index: 10; }
 .card{ border: 1px solid rgba(0,0,0,.06); border-radius: 14px; }
 .table{ margin-bottom:0; }
-@media (max-width: 992px){ .sidebar{display:none;} }
+@media (max-width: 992px){ } }
+.offcanvas .side-link{ border-radius:12px; padding:10px 12px; }
+.offcanvas .side-link:hover{ background: rgba(0,0,0,.05); }

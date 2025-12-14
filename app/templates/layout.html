@@ -12,8 +12,46 @@
   <link rel="manifest" href="/manifest.json">
 </head>
 <body>
+<!-- Mobile Navbar -->
+<nav class="navbar navbar-light bg-white border-bottom d-lg-none">
+  <div class="container-fluid">
+    <button class="btn btn-outline-secondary" type="button" data-bs-toggle="offcanvas" data-bs-target="#mobileMenu" aria-controls="mobileMenu">
+      <i class="bi bi-list"></i>
+    </button>
+    <span class="navbar-brand mb-0 h1">Finanças da Casa</span>
+    <a class="btn btn-outline-primary" href="{{ url_for('bp.transactions_new') }}">
+      <i class="bi bi-plus-lg me-1"></i>Novo
+    </a>
+  </div>
+</nav>
+
+<div class="offcanvas offcanvas-start" tabindex="-1" id="mobileMenu" aria-labelledby="mobileMenuLabel">
+  <div class="offcanvas-header">
+    <div>
+      <div class="fw-bold" id="mobileMenuLabel">Finanças da Casa</div>
+      <div class="text-muted small">{{ session.get('username','-') }} • {{ session.get('role','user') }}</div>
+    </div>
+    <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Fechar"></button>
+  </div>
+  <div class="offcanvas-body p-2">
+    <nav class="nav flex-column gap-1">
+      <a class="nav-link side-link text-dark" href="{{ url_for('bp.dashboard') }}"><i class="bi bi-speedometer2 me-2"></i>Dashboard</a>
+      <a class="nav-link side-link text-dark" href="{{ url_for('bp.transactions_list') }}"><i class="bi bi-receipt me-2"></i>Lançamentos</a>
+      <a class="nav-link side-link text-dark" href="{{ url_for('bp.budgets') }}"><i class="bi bi-pie-chart me-2"></i>Orçamentos</a>
+      <a class="nav-link side-link text-dark" href="{{ url_for('bp.reports') }}"><i class="bi bi-bar-chart me-2"></i>Relatórios</a>
+      <a class="nav-link side-link text-dark" href="{{ url_for('bp.receipts') }}"><i class="bi bi-image me-2"></i>Comprovantes</a>
+      {% if session.get('role') == 'admin' %}
+      <a class="nav-link side-link text-dark" href="{{ url_for('bp.import_csv') }}"><i class="bi bi-upload me-2"></i>Importar CSV</a>
+      <a class="nav-link side-link text-dark" href="{{ url_for('bp.settings') }}"><i class="bi bi-gear me-2"></i>Configurações</a>
+      {% endif %}
+      <hr class="my-2">
+      <a class="nav-link side-link text-dark" href="{{ url_for('bp.logout') }}"><i class="bi bi-box-arrow-right me-2"></i>Sair</a>
+    </nav>
+  </div>
+</div>
+
 <div class="d-flex">
-  <aside class="sidebar p-3">
+  <aside class="sidebar p-3 d-none d-lg-flex">
     <div class="brand mb-3">
       <div class="fw-bold">Finanças da Casa</div>
       <div class="text-muted small">Profissional • Multi-telas</div>
