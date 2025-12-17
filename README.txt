@@ -54,3 +54,12 @@ Env Vars:
 Notas:
 - Não suba a pasta .venv nem o arquivo finance.db para o GitHub.
 - Este projeto inclui wsgi.py + Procfile + render.yaml para facilitar.
+
+
+
+PERSISTÊNCIA DE DADOS (para não perder ao atualizar)
+Recomendado (Render pago): usar PostgreSQL.
+1) No Render: New -> PostgreSQL (crie um banco)
+2) No seu Web Service: Environment -> adicione a variável DATABASE_URL (Render fornece)
+3) Redeploy. Os dados ficam no banco e NÃO se perdem em novas versões.
+Obs: não faça commit do finance.db; use DATABASE_URL em produção.

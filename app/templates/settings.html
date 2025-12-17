@@ -4,6 +4,17 @@
 {% set subtitle = "Categorias, contas, usuários e recorrências" %}
 
 {% block content %}
+
+<div class="alert alert-info d-flex flex-wrap align-items-center justify-content-between gap-2">
+  <div>
+    <div class="fw-semibold">Diagnóstico</div>
+    <div class="small">Use se “sumiu” dados ou após deploy no Render.</div>
+  </div>
+  <a class="btn btn-sm btn-outline-primary" href="{{ url_for('bp.admin_diagnostico') }}">
+    <i class="bi bi-activity"></i> Abrir diagnóstico
+  </a>
+</div>
+
 <div class="row g-3">
   <div class="col-lg-6">
     <div class="card shadow-sm">

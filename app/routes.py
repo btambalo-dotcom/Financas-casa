@@ -4,6 +4,7 @@ from pathlib import Path
 
 from flask import Blueprint, render_template, request, redirect, url_for, flash, send_from_directory, session
 from werkzeug.utils import secure_filename
+from sqlalchemy import text
 
 from . import db
 from .models import Transaction, Budget, BudgetTemplate, RecurringTransaction, Category, Account, User
@@ -565,6 +566,134 @@ def delete_user(uid: int):
     db.session.commit()
     flash("Usuário excluído.", "warning")
     return redirect(url_for("bp.settings"))
+
+
+
+# ---------------- DIAGNÓSTICO (ADMIN) ----------------
+@bp.route("/admin/diagnostico")
+@admin_required
+def admin_diagnostico():
+    """Página de diagnóstico para confirmar DB conectado e contagens.
+    NÃO mostra senhas. Útil quando 'sumiu' dados ou após deploy.
+    """
+    info = {
+        "db_url": None,
+        "db_name": None,
+        "db_user": None,
+        "db_host": None,
+        "db_driver": None,
+        "tables": [],
+        "errors": []
+    }
+
+    # URL do engine (sem senha)
+    try:
+        url_obj = db.engine.url
+        # render_as_string existe no SQLAlchemy 1.4+/2.x
+        try:
+            info["db_url"] = url_obj.render_as_string(hide_password=True)
+        except Exception:
+            info["db_url"] = str(url_obj)
+        info["db_name"] = getattr(url_obj, "database", None)
+        info["db_user"] = getattr(url_obj, "username", None)
+        info["db_host"] = getattr(url_obj, "host", None)
+        info["db_driver"] = getattr(url_obj, "drivername", None)
+    except Exception as e:
+        info["errors"].append(f"Falha ao ler URL do banco: {e}")
+
+    # Tabelas (Postgres: schema public)
+    try:
+        rows = db.session.execute(text(
+            """SELECT table_name
+                 FROM information_schema.tables
+                 WHERE table_schema='public'
+                 ORDER BY table_name"""
+        )).fetchall()
+        info["tables"] = [r[0] for r in rows]
+    except Exception as e:
+        # Fallback (SQLite)
+        try:
+            rows = db.session.execute(text(
+                """SELECT name FROM sqlite_master
+                     WHERE type='table'
+                     ORDER BY name"""
+            )).fetchall()
+            info["tables"] = [r[0] for r in rows]
+        except Exception as e2:
+            info["errors"].append(f"Falha ao listar tabelas: {e} / {e2}")
+
+    counts = {}
+    try: counts["users_total"] = User.query.count()
+    except Exception as e: info["errors"].append(f"users count: {e}")
+    try: counts["transactions_total"] = Transaction.query.count()
+    except Exception as e: info["errors"].append(f"transactions count: {e}")
+    try: counts["budgets_total"] = Budget.query.count()
+    except Exception as e: info["errors"].append(f"budgets count: {e}")
+    try: counts["budget_templates_total"] = BudgetTemplate.query.count()
+    except Exception as e: info["errors"].append(f"budget_templates count: {e}")
+    try: counts["recurring_total"] = RecurringTransaction.query.count()
+    except Exception as e: info["errors"].append(f"recurring count: {e}")
+    try: counts["categories_total"] = Category.query.count()
+    except Exception as e: info["errors"].append(f"categories count: {e}")
+    try: counts["accounts_total"] = Account.query.count()
+    except Exception as e: info["errors"].append(f"accounts count: {e}")
+
+    # Datas e meses das transações
+    stats = {"min_date": None, "max_date": None, "months": []}
+    try:
+        row = db.session.execute(text("SELECT MIN(txn_date), MAX(txn_date) FROM transactions")).fetchone()
+        stats["min_date"], stats["max_date"] = row[0], row[1]
+    except Exception as e:
+        info["errors"].append(f"min/max txn_date: {e}")
+
+    try:
+        # Postgres
+        rows = db.session.execute(text(
+            """SELECT TO_CHAR(txn_date, 'YYYY-MM') AS ym, COUNT(*) 
+                 FROM transactions
+                 GROUP BY ym
+                 ORDER BY ym DESC
+                 LIMIT 24"""
+        )).fetchall()
+        stats["months"] = [{"month": r[0], "count": int(r[1])} for r in rows]
+    except Exception:
+        # SQLite fallback
+        try:
+            rows = db.session.execute(text(
+                """SELECT substr(txn_date,1,7) AS ym, COUNT(*) 
+                     FROM transactions
+                     GROUP BY ym
+                     ORDER BY ym DESC
+                     LIMIT 24"""
+            )).fetchall()
+            stats["months"] = [{"month": r[0], "count": int(r[1])} for r in rows]
+        except Exception as e2:
+            info["errors"].append(f"months group: {e2}")
+
+    last_txns = []
+    try:
+        last = Transaction.query.order_by(Transaction.id.desc()).limit(10).all()
+        for t in last:
+            last_txns.append({
+                "id": t.id,
+                "date": t.txn_date.isoformat() if t.txn_date else "",
+                "type": t.txn_type,
+                "amount": float(t.amount) if t.amount is not None else 0,
+                "category": getattr(t.category, "name", "") if getattr(t, "category", None) else "",
+                "account": getattr(t.account, "name", "") if getattr(t, "account", None) else "",
+                "desc": (t.description or "")[:80]
+            })
+    except Exception as e:
+        info["errors"].append(f"last transactions: {e}")
+
+    return render_template(
+        "admin_diagnostico.html",
+        info=info,
+        counts=counts,
+        stats=stats,
+        last_txns=last_txns
+    )
+
 
 # ---------------- RECURRING ----------------
 @bp.route("/settings/recurring", methods=["POST"])

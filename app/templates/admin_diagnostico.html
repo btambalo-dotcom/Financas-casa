@@ -1,0 +1,155 @@
+{% extends "layout.html" %}
+{% set title = "Diagnóstico (Admin)" %}
+{% set header = "Diagnóstico do Sistema" %}
+{% set subtitle = "Verificação do banco, tabelas e contagens (somente admin)" %}
+
+{% block content %}
+<div class="d-flex flex-wrap gap-2 mb-3">
+  <a class="btn btn-outline-secondary" href="{{ url_for('bp.dashboard') }}">
+    <i class="bi bi-arrow-left"></i> Voltar
+  </a>
+  <a class="btn btn-primary" href="{{ url_for('bp.settings') }}">
+    <i class="bi bi-gear"></i> Configurações
+  </a>
+</div>
+
+{% if info.errors and info.errors|length %}
+  <div class="alert alert-warning">
+    <div class="fw-semibold mb-1">Avisos</div>
+    <ul class="mb-0">
+      {% for e in info.errors %}
+        <li>{{ e }}</li>
+      {% endfor %}
+    </ul>
+  </div>
+{% endif %}
+
+<div class="row g-3">
+  <div class="col-lg-6">
+    <div class="card shadow-sm">
+      <div class="card-header bg-white fw-semibold">Banco conectado</div>
+      <div class="card-body">
+        <div class="mb-2"><span class="text-muted">Driver:</span> <span class="fw-semibold">{{ info.db_driver or "-" }}</span></div>
+        <div class="mb-2"><span class="text-muted">Host:</span> <span class="fw-semibold">{{ info.db_host or "-" }}</span></div>
+        <div class="mb-2"><span class="text-muted">Database:</span> <span class="fw-semibold">{{ info.db_name or "-" }}</span></div>
+        <div class="mb-2"><span class="text-muted">User:</span> <span class="fw-semibold">{{ info.db_user or "-" }}</span></div>
+        <div class="mb-2">
+          <span class="text-muted">URL (sem senha):</span>
+          <div class="small bg-light border rounded p-2 mt-1" style="word-break:break-all;">{{ info.db_url or "-" }}</div>
+        </div>
+        <div class="small text-muted">
+          Se os dados “sumirem”, confirme se este host/database continuam os mesmos.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-lg-6">
+    <div class="card shadow-sm">
+      <div class="card-header bg-white fw-semibold">Contagens (tabelas)</div>
+      <div class="card-body">
+        <div class="row g-2">
+          <div class="col-6"><div class="p-2 border rounded bg-light">Usuários: <span class="fw-semibold">{{ counts.users_total if counts.users_total is not none else "-" }}</span></div></div>
+          <div class="col-6"><div class="p-2 border rounded bg-light">Lançamentos: <span class="fw-semibold">{{ counts.transactions_total if counts.transactions_total is not none else "-" }}</span></div></div>
+          <div class="col-6"><div class="p-2 border rounded bg-light">Orçamentos: <span class="fw-semibold">{{ counts.budgets_total if counts.budgets_total is not none else "-" }}</span></div></div>
+          <div class="col-6"><div class="p-2 border rounded bg-light">Modelo orçamento: <span class="fw-semibold">{{ counts.budget_templates_total if counts.budget_templates_total is not none else "-" }}</span></div></div>
+          <div class="col-6"><div class="p-2 border rounded bg-light">Recorrentes: <span class="fw-semibold">{{ counts.recurring_total if counts.recurring_total is not none else "-" }}</span></div></div>
+          <div class="col-6"><div class="p-2 border rounded bg-light">Categorias: <span class="fw-semibold">{{ counts.categories_total if counts.categories_total is not none else "-" }}</span></div></div>
+          <div class="col-6"><div class="p-2 border rounded bg-light">Contas: <span class="fw-semibold">{{ counts.accounts_total if counts.accounts_total is not none else "-" }}</span></div></div>
+        </div>
+        <hr>
+        <div class="small text-muted">
+          Se “Lançamentos” estiver 0 aqui, então realmente não existe dado nessa base (ou o app apontou para outra base).
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-lg-6">
+    <div class="card shadow-sm">
+      <div class="card-header bg-white fw-semibold">Resumo por mês (últimos 24)</div>
+      <div class="card-body">
+        <div class="mb-2">
+          <span class="text-muted">Primeiro lançamento:</span> <span class="fw-semibold">{{ stats.min_date or "-" }}</span><br>
+          <span class="text-muted">Último lançamento:</span> <span class="fw-semibold">{{ stats.max_date or "-" }}</span>
+        </div>
+        {% if stats.months and stats.months|length %}
+          <div class="table-responsive">
+            <table class="table table-sm align-middle">
+              <thead><tr><th>Mês</th><th class="text-end">Qtd</th></tr></thead>
+              <tbody>
+                {% for r in stats.months %}
+                  <tr>
+                    <td>{{ r.month }}</td>
+                    <td class="text-end">{{ r.count }}</td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+          <div class="small text-muted">Dica: se seu Dashboard estiver em um mês que não aparece acima, vai ficar “zerado”.</div>
+        {% else %}
+          <div class="text-muted">Sem dados para agrupar por mês.</div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <div class="col-lg-6">
+    <div class="card shadow-sm">
+      <div class="card-header bg-white fw-semibold">Últimos 10 lançamentos</div>
+      <div class="card-body">
+        {% if last_txns and last_txns|length %}
+          <div class="table-responsive">
+            <table class="table table-sm align-middle">
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Data</th>
+                  <th>Tipo</th>
+                  <th class="text-end">Valor</th>
+                  <th>Categoria</th>
+                  <th>Conta</th>
+                  <th>Descrição</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for t in last_txns %}
+                  <tr>
+                    <td>{{ t.id }}</td>
+                    <td>{{ t.date }}</td>
+                    <td>{{ t.type }}</td>
+                    <td class="text-end">{{ "%.2f"|format(t.amount) }}</td>
+                    <td>{{ t.category }}</td>
+                    <td>{{ t.account }}</td>
+                    <td class="text-muted">{{ t.desc }}</td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        {% else %}
+          <div class="text-muted">Nenhum lançamento encontrado.</div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <div class="col-12">
+    <div class="card shadow-sm">
+      <div class="card-header bg-white fw-semibold">Tabelas encontradas</div>
+      <div class="card-body">
+        {% if info.tables and info.tables|length %}
+          <div class="d-flex flex-wrap gap-2">
+            {% for t in info.tables %}
+              <span class="badge text-bg-light border">{{ t }}</span>
+            {% endfor %}
+          </div>
+        {% else %}
+          <div class="text-muted">Não foi possível listar tabelas.</div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -111,5 +111,19 @@ if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('/static/sw.js').catch(()=>{});
 }
 </script>
+
+<script id="mobileMenuAutoClose">
+document.addEventListener('DOMContentLoaded', function () {
+  var menuEl = document.getElementById('mobileMenu');
+  if (!menuEl || !window.bootstrap) return;
+  menuEl.addEventListener('click', function (e) {
+    var a = e.target.closest('a');
+    if (!a) return;
+    var oc = bootstrap.Offcanvas.getInstance(menuEl) || new bootstrap.Offcanvas(menuEl);
+    oc.hide();
+  });
+});
+</script>
+
 </body>
 </html>
