@@ -1,5 +1,5 @@
 import os
-from datetime import datetime, date
+from datetime import datetime, date, timedelta
 from pathlib import Path
 
 from flask import Blueprint, render_template, request, redirect, url_for, flash, send_from_directory, session
@@ -323,86 +323,233 @@ def current_upload_dir():
 @bp.route("/reports")
 @login_required
 def reports():
+    # Filtros
     ym = request.args.get("month") or month_now()
+    date_from = (request.args.get("date_from") or "").strip()
+    date_to = (request.args.get("date_to") or "").strip()
+    txn_type = (request.args.get("txn_type") or "all").strip()
+    account_id = (request.args.get("account_id") or "all").strip()
+    category_ids = request.args.getlist("category_id")
+
+    # Range de datas (end exclusivo)
     start = month_first_day(ym)
     end = next_month_first_day(ym)
-    txs = Transaction.query.filter(Transaction.txn_date >= start, Transaction.txn_date < end).all()
+    label = f"Mês {ym}"
+    try:
+        if date_from or date_to:
+            if date_from:
+                start = date.fromisoformat(date_from)
+            if date_to:
+                end = date.fromisoformat(date_to) + timedelta(days=1)
+            label = f"Período {start.isoformat()} a {(end - timedelta(days=1)).isoformat()}"
+    except Exception:
+        flash("Datas inválidas no filtro (use YYYY-MM-DD).", "warning")
+
+    q = Transaction.query.filter(Transaction.txn_date >= start, Transaction.txn_date < end)
+
+    if txn_type in ("income", "expense"):
+        q = q.filter(Transaction.txn_type == txn_type)
+
+    if account_id and account_id != "all":
+        try:
+            q = q.filter(Transaction.account_id == int(account_id))
+        except Exception:
+            pass
+
+    cat_ids_int = []
+    for cid in category_ids:
+        try:
+            cat_ids_int.append(int(cid))
+        except Exception:
+            pass
+    if cat_ids_int:
+        q = q.filter(Transaction.category_id.in_(cat_ids_int))
+
+    txs = q.all()
 
     by_cat = {}
     by_acc = {}
+    total_income = 0.0
+    total_expense = 0.0
+
     for t in txs:
+        if t.txn_type == "expense":
+            total_expense += float(t.amount)
+        else:
+            total_income += float(t.amount)
+
         key_c = f"{t.txn_type}:{t.category.name}"
-        by_cat[key_c] = by_cat.get(key_c, 0) + t.amount
+        by_cat[key_c] = by_cat.get(key_c, 0) + float(t.amount)
+
         key_a = f"{t.txn_type}:{t.account.name}"
-        by_acc[key_a] = by_acc.get(key_a, 0) + t.amount
+        by_acc[key_a] = by_acc.get(key_a, 0) + float(t.amount)
+
+    net = total_income - total_expense
 
     # ordenar
-    cat_rows = sorted([(k.split(":",1)[0], k.split(":",1)[1], v) for k,v in by_cat.items()], key=lambda x: (x[0], -x[2]))
-    acc_rows = sorted([(k.split(":",1)[0], k.split(":",1)[1], v) for k,v in by_acc.items()], key=lambda x: (x[0], -x[2]))
+    cat_rows = sorted([(k.split(":", 1)[0], k.split(":", 1)[1], v) for k, v in by_cat.items()], key=lambda x: (x[0], -x[2]))
+    acc_rows = sorted([(k.split(":", 1)[0], k.split(":", 1)[1], v) for k, v in by_acc.items()], key=lambda x: (x[0], -x[2]))
 
-    return render_template("reports.html", month=ym, cat_rows=cat_rows, acc_rows=acc_rows)
+    categories = Category.query.filter_by(is_active=True).order_by(Category.kind.asc(), Category.name.asc()).all()
+    accounts = Account.query.order_by(Account.name.asc()).all()
+
+    export_params = {
+        "month": ym,
+        "date_from": date_from or None,
+        "date_to": date_to or None,
+        "txn_type": txn_type if txn_type != "all" else None,
+        "account_id": account_id if account_id != "all" else None,
+        "category_id": cat_ids_int or None,
+    }
+
+    # remove None (url_for não precisa)
+    export_params = {k: v for k, v in export_params.items() if v not in (None, "", [])}
+
+    return render_template(
+        "reports.html",
+        month=ym,
+        date_from=date_from,
+        date_to=date_to,
+        txn_type=txn_type,
+        account_id=account_id,
+        category_ids=cat_ids_int,
+        categories=categories,
+        accounts=accounts,
+        label=label,
+        total_income=total_income,
+        total_expense=total_expense,
+        net=net,
+        cat_rows=cat_rows,
+        acc_rows=acc_rows,
+        export_params=export_params,
+    )
+
 
 @bp.route("/reports/export/<fmt>")
 @login_required
 def reports_export(fmt: str):
     ym = request.args.get("month") or month_now()
+    date_from = (request.args.get("date_from") or "").strip()
+    date_to = (request.args.get("date_to") or "").strip()
+    txn_type = (request.args.get("txn_type") or "all").strip()
+    account_id = (request.args.get("account_id") or "all").strip()
+    category_ids = request.args.getlist("category_id")
+
     start = month_first_day(ym)
     end = next_month_first_day(ym)
-    txs = Transaction.query.filter(Transaction.txn_date >= start, Transaction.txn_date < end).order_by(Transaction.txn_date.asc()).all()
+    label = f"{ym}"
+    try:
+        if date_from or date_to:
+            if date_from:
+                start = date.fromisoformat(date_from)
+            if date_to:
+                end = date.fromisoformat(date_to) + timedelta(days=1)
+            label = f"{start.isoformat()}_a_{(end - timedelta(days=1)).isoformat()}"
+    except Exception:
+        flash("Datas inválidas no filtro (use YYYY-MM-DD).", "warning")
+
+    q = Transaction.query.filter(Transaction.txn_date >= start, Transaction.txn_date < end)
+
+    if txn_type in ("income", "expense"):
+        q = q.filter(Transaction.txn_type == txn_type)
+
+    if account_id and account_id != "all":
+        try:
+            q = q.filter(Transaction.account_id == int(account_id))
+        except Exception:
+            pass
+
+    cat_ids_int = []
+    for cid in category_ids:
+        try:
+            cat_ids_int.append(int(cid))
+        except Exception:
+            pass
+    if cat_ids_int:
+        q = q.filter(Transaction.category_id.in_(cat_ids_int))
+
+    txs = q.order_by(Transaction.txn_date.asc()).all()
 
     headers = ["Data", "Tipo", "Categoria", "Conta", "Descrição", "Valor", "Comprovante"]
     rows = []
     total_income = 0.0
     total_expense = 0.0
+
     for t in txs:
-        sign = 1.0
         if t.txn_type == "expense":
-            total_expense += t.amount
+            total_expense += float(t.amount)
         else:
-            total_income += t.amount
-        rows.append([t.txn_date, t.txn_type, t.category.name, t.account.name, t.description, float(t.amount), t.receipt_filename])
+            total_income += float(t.amount)
+
+        rows.append([
+            t.txn_date,
+            t.txn_type,
+            t.category.name if t.category else "",
+            t.account.name if t.account else "",
+            t.description,
+            float(t.amount),
+            t.receipt_filename,
+        ])
 
     net = total_income - total_expense
 
     from flask import current_app
     export_dir = Path(current_app.config["EXPORT_FOLDER"])
+    export_dir.mkdir(parents=True, exist_ok=True)
     ts = datetime.now().strftime("%Y%m%d_%H%M%S")
 
-    meta = {
-        "Mês": ym,
-        "Total receitas": f"${total_income:,.2f}",
-        "Total despesas": f"${total_expense:,.2f}",
-        "Saldo (líquido)": f"${net:,.2f}",
-    }
+    # Nome amigável com filtros
+    base_name = f"lancamentos_{label}_{ts}"
+
+    # Normaliza para url
+    base_name = re.sub(r"[^A-Za-z0-9_\-]", "_", base_name)
 
     if fmt == "csv":
-        out = export_dir / f"lancamentos_{ym}_{ts}.csv"
-        export_csv(out, [[str(r[0]), r[1], r[2], r[3], r[4], f"{r[5]:.2f}", r[6]] for r in rows], headers)
+        out = export_dir / f"{base_name}.csv"
+        export_csv(out, headers, rows)
         return send_from_directory(str(export_dir), out.name, as_attachment=True)
 
     if fmt == "xlsx":
-        out = export_dir / f"lancamentos_{ym}_{ts}.xlsx"
-        export_xlsx_professional(out, rows, headers, title=f"Lançamentos • {ym}", meta=meta)
+        out = export_dir / f"{base_name}.xlsx"
+        export_xlsx_professional(out, rows, headers, title="Lançamentos", meta={
+            "Período": f"{start.isoformat()} a {(end - timedelta(days=1)).isoformat()}",
+            "Filtro tipo": ("Todos" if txn_type == "all" else ("Receitas" if txn_type == "income" else "Despesas")),
+            "Total receitas": f"${total_income:,.2f}",
+            "Total despesas": f"${total_expense:,.2f}",
+            "Saldo": f"${net:,.2f}",
+        })
         return send_from_directory(str(export_dir), out.name, as_attachment=True)
 
     if fmt == "pdf":
-        out = export_dir / f"lancamentos_{ym}_{ts}.pdf"
+        out = export_dir / f"{base_name}.pdf"
         pdf_rows = []
         for r in rows:
             pdf_rows.append([
                 r[0].strftime("%Y-%m-%d"),
-                "Receita" if r[1]=="income" else "Despesa",
+                "Receita" if r[1] == "income" else "Despesa",
                 r[2],
                 r[3],
-                (r[4] or "")[:35],
+                (r[4] or "")[:40],
                 f"${r[5]:,.2f}",
-                ("Sim" if r[6] else "Não")
+                ("Sim" if r[6] else "Não"),
             ])
-        export_pdf_professional(out, f"Lançamentos • {ym}", ["Data","Tipo","Categoria","Conta","Descrição","Valor","Comp."], pdf_rows, meta=meta)
+        export_pdf_professional(
+            out,
+            "Relatório de Lançamentos",
+            headers=["Data", "Tipo", "Categoria", "Conta", "Descrição", "Valor", "Comp."],
+            rows=pdf_rows,
+            meta={
+                "Período": f"{start.isoformat()} a {(end - timedelta(days=1)).isoformat()}",
+                "Total receitas": f"${total_income:,.2f}",
+                "Total despesas": f"${total_expense:,.2f}",
+                "Saldo": f"${net:,.2f}",
+            },
+        )
         return send_from_directory(str(export_dir), out.name, as_attachment=True)
 
     flash("Formato inválido.", "danger")
     return redirect(url_for("bp.reports", month=ym))
+
 
 
 # ---------------- IMPORT (CSV) ----------------

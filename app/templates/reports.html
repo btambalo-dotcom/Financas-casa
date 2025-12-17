@@ -11,14 +11,66 @@
 
 {% block content %}
 <form class="row g-2 align-items-end mb-3" method="get" action="{{ url_for('bp.reports') }}">
-  <div class="col-auto">
+  <div class="col-12 col-lg-2">
     <label class="form-label">Mês (YYYY-MM)</label>
-    <input class="form-control" name="month" value="{{ month }}">
+    <input class="form-control" name="month" value="{{ month }}" placeholder="2025-12">
+    <div class="form-text">Opcional se usar período.</div>
   </div>
-  <div class="col-auto">
-    <button class="btn btn-primary"><i class="bi bi-search me-1"></i>Ver</button>
+
+  <div class="col-6 col-lg-2">
+    <label class="form-label">De (YYYY-MM-DD)</label>
+    <input class="form-control" type="date" name="date_from" value="{{ date_from }}">
+  </div>
+
+  <div class="col-6 col-lg-2">
+    <label class="form-label">Até (YYYY-MM-DD)</label>
+    <input class="form-control" type="date" name="date_to" value="{{ date_to }}">
+  </div>
+
+  <div class="col-6 col-lg-2">
+    <label class="form-label">Tipo</label>
+    <select class="form-select" name="txn_type">
+      <option value="all" {% if txn_type=='all' %}selected{% endif %}>Todos</option>
+      <option value="income" {% if txn_type=='income' %}selected{% endif %}>Receitas</option>
+      <option value="expense" {% if txn_type=='expense' %}selected{% endif %}>Despesas</option>
+    </select>
+  </div>
+
+  <div class="col-6 col-lg-2">
+    <label class="form-label">Conta</label>
+    <select class="form-select" name="account_id">
+      <option value="all" {% if account_id=='all' %}selected{% endif %}>Todas</option>
+      {% for a in accounts %}
+        <option value="{{ a.id }}" {% if account_id|int == a.id %}selected{% endif %}>{{ a.name }}</option>
+      {% endfor %}
+    </select>
+  </div>
+
+  <div class="col-12 col-lg-2">
+    <label class="form-label">Categoria (multi)</label>
+    <select class="form-select" name="category_id" multiple size="4">
+      {% for c in categories %}
+        <option value="{{ c.id }}" {% if c.id in category_ids %}selected{% endif %}>{{ c.name }}</option>
+      {% endfor %}
+    </select>
+  </div>
+
+  <div class="col-12 d-flex gap-2 mt-2">
+    <button class="btn btn-primary" type="submit"><i class="bi bi-search"></i> Aplicar filtros</button>
+    <a class="btn btn-outline-secondary" href="{{ url_for('bp.reports', month=month) }}">Limpar</a>
+
+    <div class="ms-auto d-flex flex-wrap gap-2">
+      <a class="btn btn-outline-dark" href="{{ url_for('bp.reports_export', fmt='pdf', **export_params) }}"><i class="bi bi-filetype-pdf"></i> PDF</a>
+      <a class="btn btn-outline-success" href="{{ url_for('bp.reports_export', fmt='xlsx', **export_params) }}"><i class="bi bi-file-earmark-excel"></i> Excel</a>
+      <a class="btn btn-outline-secondary" href="{{ url_for('bp.reports_export', fmt='csv', **export_params) }}"><i class="bi bi-filetype-csv"></i> CSV</a>
+    </div>
   </div>
 </form>
+
+<div class="alert alert-light border d-flex justify-content-between align-items-center mb-3">
+  <div><strong>Filtro atual:</strong> {{ label }}</div>
+  <div class="small text-muted">Dica: para recorrentes, use a tela de “Orçamentos”.</div>
+</div>
 
 <div class="row g-3">
   <div class="col-lg-6">
