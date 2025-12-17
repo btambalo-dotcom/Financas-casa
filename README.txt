@@ -1,4 +1,4 @@
-Controle Financeiro Familiar - PRO V2 (multi-telas + upgrades)
+Controle Financeiro Familiar - PRO V10 (Render/PostgreSQL seguro) (multi-telas + upgrades)
 
 ✅ Login (admin + esposa)
 ✅ Editar lançamento
@@ -56,6 +56,22 @@ Notas:
 - Este projeto inclui wsgi.py + Procfile + render.yaml para facilitar.
 
 
+
+IMPORTANTE (Render): PostgreSQL obrigatório
+- Em produção (Render), o app NÃO inicia se estiver em SQLite.
+- Motivo: SQLite no Render é apagado em deploy/restart e você perde tudo.
+
+Como configurar no Render:
+1) Render -> New -> PostgreSQL (ou use o seu financas-casa-db existente)
+2) Web Service -> Environment -> crie/cole:
+   DATABASE_URL = postgresql://USER:SENHA@HOST:5432/NOME_DO_BANCO
+   (Se vier postgres://, tudo bem: o app converte automaticamente.)
+3) Web Service -> Environment -> defina SECRET_KEY (uma chave segura)
+4) Deploy latest commit
+
+Verificação:
+- Entre como admin -> Configurações -> Diagnóstico
+- Deve mostrar Driver: postgresql
 
 PERSISTÊNCIA DE DADOS (para não perder ao atualizar)
 Recomendado (Render pago): usar PostgreSQL.
