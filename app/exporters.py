@@ -89,7 +89,20 @@ def export_pdf_professional(path: Path, title: str, headers, rows, meta=None):
             story.append(Paragraph(f"{k}: {v}", styles["Normal"]))
         story.append(Spacer(1, 10))
 
-    data = [headers] + rows
+    def _cell(x):
+        if x is None:
+            return ""
+        if isinstance(x, (datetime, date)):
+            try:
+                return x.strftime("%Y-%m-%d")
+            except Exception:
+                return str(x)
+        # Decimal / numbers: keep as string (already formatted in routes where needed)
+        return str(x)
+
+    safe_headers = [_cell(h) for h in headers]
+    safe_rows = [[_cell(c) for c in r] for r in rows]
+    data = [safe_headers] + safe_rows
     tbl = Table(data, repeatRows=1)
     tbl.setStyle(TableStyle([
         ("BACKGROUND", (0,0), (-1,0), colors.HexColor("#111827")),
