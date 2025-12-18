@@ -1,0 +1,10 @@
+
+.filters {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+.month-input {
+    height: 38px;
+    padding: 6px 10px;
+}
