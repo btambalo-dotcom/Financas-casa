@@ -56,6 +56,17 @@ def create_app():
 
     app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
+    # Pasta temporária para exportações (PDF/Excel/CSV) - segura no Render
+    app.config["EXPORT_FOLDER"] = os.environ.get("EXPORT_FOLDER", "/tmp/exports")
+    os.makedirs(app.config["EXPORT_FOLDER"], exist_ok=True)
+
+    # Mais estabilidade em Postgres no Render (evita quedas/EOF)
+    app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
+        "pool_pre_ping": True,
+        "pool_recycle": 280,
+        "pool_timeout": 30,
+    }
+
     # Uploads (comprovantes)
     uploads = base_dir / "uploads"
     uploads.mkdir(exist_ok=True)

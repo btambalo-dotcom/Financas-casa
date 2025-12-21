@@ -494,7 +494,8 @@ def reports_export(fmt: str):
     net = total_income - total_expense
 
     from flask import current_app
-    export_dir = Path(current_app.config["EXPORT_FOLDER"])
+    export_dir = Path(current_app.config.get("EXPORT_FOLDER", "/tmp/exports"))
+    export_dir.mkdir(parents=True, exist_ok=True)
     export_dir.mkdir(parents=True, exist_ok=True)
     ts = datetime.now().strftime("%Y%m%d_%H%M%S")
 

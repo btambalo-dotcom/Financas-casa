@@ -10,11 +10,11 @@
 {% endblock %}
 
 {% block content %}
-<form class="row g-2 align-items-start mb-3" method="get" action="{{ url_for('bp.reports') }}">
+<form class="row g-2 align-items-end mb-3" method="get" action="{{ url_for('bp.reports') }}">
   <div class="col-12 col-lg-2">
-    <label class="form-label">Mês (YYYY-MM)</label>
+    <label class="form-label">Mês (YYYY-MM) <small class="text-muted">(opcional se usar período)</small></label>
     <input class="form-control" name="month" value="{{ month }}" placeholder="2025-12">
-    <div class="form-text">Opcional se usar período.</div>
+    
   </div>
 
   <div class="col-6 col-lg-2">
