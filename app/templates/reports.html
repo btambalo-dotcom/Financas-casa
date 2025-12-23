@@ -1,93 +1,171 @@
-{% extends "layout.html" %}
-{% set title = "Relatórios" %}
-{% set header = "Relatórios" %}
-{% set subtitle = "Resumo por categoria e por conta" %}
-
-{% block header_actions %}
-  <a class="btn btn-outline-secondary" href="{{ url_for('bp.reports_export', fmt='csv', month=month) }}"><i class="bi bi-download me-1"></i>CSV</a>
-  <a class="btn btn-outline-secondary" href="{{ url_for('bp.reports_export', fmt='xlsx', month=month) }}"><i class="bi bi-file-earmark-excel me-1"></i>Excel</a>
-  <a class="btn btn-outline-secondary" href="{{ url_for('bp.reports_export', fmt='pdf', month=month) }}"><i class="bi bi-filetype-pdf me-1"></i>PDF</a>
-{% endblock %}
+{% extends "base.html" %}
+{% block title %}Relatórios{% endblock %}
 
 {% block content %}
-<form class="row g-2 align-items-end mb-3" method="get" action="{{ url_for('bp.reports') }}">
-  <div class="col-12 col-lg-2">
-    <label class="form-label">Mês (YYYY-MM) <small class="text-muted">(opcional se usar período)</small></label>
-    <input class="form-control" name="month" value="{{ month }}" placeholder="2025-12">
-    
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h1 class="h3 mb-0">Relatórios</h1>
+  <div class="btn-group">
+    <a class="btn btn-outline-secondary" href="{{ url_for('bp.reports_export_csv', **export_params) }}">
+      <i class="bi bi-download me-1"></i>CSV
+    </a>
+    <a class="btn btn-outline-secondary" href="{{ url_for('bp.reports_export_excel', **export_params) }}">
+      <i class="bi bi-file-earmark-spreadsheet me-1"></i>Excel
+    </a>
+    <a class="btn btn-outline-secondary" href="{{ url_for('bp.reports_export_pdf', **export_params) }}">
+      <i class="bi bi-file-earmark-pdf me-1"></i>PDF
+    </a>
   </div>
-
-  <div class="col-6 col-lg-2">
-    <label class="form-label">De (YYYY-MM-DD)</label>
-    <input class="form-control" type="date" name="date_from" value="{{ date_from }}">
-  </div>
-
-  <div class="col-6 col-lg-2">
-    <label class="form-label">Até (YYYY-MM-DD)</label>
-    <input class="form-control" type="date" name="date_to" value="{{ date_to }}">
-  </div>
-
-  <div class="col-6 col-lg-2">
-    <label class="form-label">Tipo</label>
-    <select class="form-select" name="txn_type">
-      <option value="all" {% if txn_type=='all' %}selected{% endif %}>Todos</option>
-      <option value="income" {% if txn_type=='income' %}selected{% endif %}>Receitas</option>
-      <option value="expense" {% if txn_type=='expense' %}selected{% endif %}>Despesas</option>
-    </select>
-  </div>
-
-  <div class="col-6 col-lg-2">
-    <label class="form-label">Conta</label>
-    <select class="form-select" name="account_id">
-      <option value="all" {% if account_id=='all' %}selected{% endif %}>Todas</option>
-      {% for a in accounts %}
-        <option value="{{ a.id }}" {% if account_id|int == a.id %}selected{% endif %}>{{ a.name }}</option>
-      {% endfor %}
-    </select>
-  </div>
-
-  <div class="col-12 col-lg-2">
-    <label class="form-label">Categoria (multi)</label>
-    <select class="form-select" name="category_id" multiple size="4">
-      {% for c in categories %}
-        <option value="{{ c.id }}" {% if c.id in category_ids %}selected{% endif %}>{{ c.name }}</option>
-      {% endfor %}
-    </select>
-  </div>
-
-  <div class="col-12 d-flex gap-2 mt-2">
-    <button class="btn btn-primary" type="submit"><i class="bi bi-search"></i> Aplicar filtros</button>
-    <a class="btn btn-outline-secondary" href="{{ url_for('bp.reports', month=month) }}">Limpar</a>
-
-    <div class="ms-auto d-flex flex-wrap gap-2">
-      <a class="btn btn-outline-dark" href="{{ url_for('bp.reports_export', fmt='pdf', **export_params) }}"><i class="bi bi-filetype-pdf"></i> PDF</a>
-      <a class="btn btn-outline-success" href="{{ url_for('bp.reports_export', fmt='xlsx', **export_params) }}"><i class="bi bi-file-earmark-excel"></i> Excel</a>
-      <a class="btn btn-outline-secondary" href="{{ url_for('bp.reports_export', fmt='csv', **export_params) }}"><i class="bi bi-filetype-csv"></i> CSV</a>
-    </div>
-  </div>
-</form>
-
-<div class="alert alert-light border d-flex justify-content-between align-items-center mb-3">
-  <div><strong>Filtro atual:</strong> {{ label }}</div>
-  <div class="small text-muted">Dica: para recorrentes, use a tela de “Orçamentos”.</div>
 </div>
 
-<div class="row g-3">
-  <div class="col-lg-6">
-    <div class="card shadow-sm">
-      <div class="card-header bg-white fw-semibold">Por categoria</div>
-      <div class="table-responsive">
-        <table class="table mb-0 align-middle">
-          <thead class="table-light"><tr><th>Tipo</th><th>Categoria</th><th class="text-end">Total</th></tr></thead>
+<div class="card mb-4">
+  <div class="card-header">
+    Filtros
+  </div>
+  <div class="card-body">
+    <form method="get" class="row g-3 align-items-end">
+      <div class="col-md-2">
+        <label for="month" class="form-label">Mês (YYYY-MM)</label>
+        <input type="month" class="form-control" id="month" name="month" value="{{ month }}">
+      </div>
+      <div class="col-md-2">
+        <label for="date_from" class="form-label">De (opcional)</label>
+        <input type="date" class="form-control" id="date_from" name="date_from" value="{{ date_from }}">
+      </div>
+      <div class="col-md-2">
+        <label for="date_to" class="form-label">Até (opcional)</label>
+        <input type="date" class="form-control" id="date_to" name="date_to" value="{{ date_to }}">
+      </div>
+      <div class="col-md-2">
+        <label for="txn_type" class="form-label">Tipo</label>
+        <select class="form-select" id="txn_type" name="kind">
+          <option value="all" {{ "selected" if txn_type == "all" else "" }}>Todos</option>
+          <option value="income" {{ "selected" if txn_type == "income" else "" }}>Receitas</option>
+          <option value="expense" {{ "selected" if txn_type == "expense" else "" }}>Despesas</option>
+        </select>
+      </div>
+      <div class="col-md-2">
+        <label for="account_id" class="form-label">Conta</label>
+        <select class="form-select" id="account_id" name="account_id">
+          <option value="all" {{ "selected" if account_id == "all" else "" }}>Todas</option>
+          {% for acc in accounts %}
+          <option value="{{ acc.id }}" {{ "selected" if account_id|int == acc.id else "" }}>{{ acc.name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-4">
+        <label for="category_id" class="form-label">Categoria (multi)</label>
+        <select class="form-select" id="category_id" name="category_id" multiple size="4">
+          {% for cat in categories %}
+          <option value="{{ cat.id }}" {% if category_ids and cat.id in category_ids %}selected{% endif %}>
+            {{ cat.name }}
+          </option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-2">
+        <button type="submit" class="btn btn-primary w-100 mt-md-4">
+          <i class="bi bi-funnel me-1"></i>Aplicar filtros
+        </button>
+      </div>
+      <div class="col-md-2">
+        <a href="{{ url_for('bp.reports') }}" class="btn btn-outline-secondary w-100 mt-md-4">Limpar</a>
+      </div>
+    </form>
+
+    <p class="text-muted small mt-3">
+      Filtro atual: {{ label }}
+    </p>
+  </div>
+</div>
+
+<div class="row mb-4">
+  <div class="col-md-4">
+    <div class="card">
+      <div class="card-header">Resumo</div>
+      <div class="card-body">
+        <p class="mb-1">Receitas: <strong class="text-success">{{ total_income|currency }}</strong></p>
+        <p class="mb-1">Despesas: <strong class="text-danger">{{ total_expense|currency }}</strong></p>
+        <p class="mb-0">Resultado: 
+          <strong class="{{ 'text-success' if net >= 0 else 'text-danger' }}">{{ net|currency }}</strong>
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-8">
+    <div class="card">
+      <div class="card-header">DRE (Demonstrativo de Resultado)</div>
+      <div class="card-body">
+        <div class="row">
+          <div class="col-md-6">
+            <h6>Receitas</h6>
+            <table class="table table-sm">
+              <thead>
+                <tr><th>Categoria</th><th class="text-end">Total</th></tr>
+              </thead>
+              <tbody>
+                {% for _, categoria, total in dre_income_rows %}
+                <tr>
+                  <td>{{ categoria }}</td>
+                  <td class="text-end">{{ total|currency }}</td>
+                </tr>
+                {% else %}
+                <tr><td colspan="2" class="text-muted">Sem receitas no período.</td></tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+          <div class="col-md-6">
+            <h6>Despesas</h6>
+            <table class="table table-sm">
+              <thead>
+                <tr><th>Categoria</th><th class="text-end">Total</th></tr>
+              </thead>
+              <tbody>
+                {% for _, categoria, total in dre_expense_rows %}
+                <tr>
+                  <td>{{ categoria }}</td>
+                  <td class="text-end">{{ total|currency }}</td>
+                </tr>
+                {% else %}
+                <tr><td colspan="2" class="text-muted">Sem despesas no período.</td></tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <hr>
+        <p class="mb-0">
+          <strong>Resultado do período:</strong>
+          <span class="{{ 'text-success' if net >= 0 else 'text-danger' }}">{{ net|currency }}</span>
+        </p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row">
+  <div class="col-md-6">
+    <div class="card mb-4">
+      <div class="card-header">Balancete por categoria</div>
+      <div class="card-body p-0">
+        <table class="table table-striped mb-0">
+          <thead>
+            <tr>
+              <th>Tipo</th>
+              <th>Categoria</th>
+              <th class="text-end">Total</th>
+            </tr>
+          </thead>
           <tbody>
-            {% for typ, cat, total in cat_rows %}
-              <tr>
-                <td><span class="badge text-bg-{{ 'success' if typ=='income' else 'danger' }}">{{ 'Receita' if typ=='income' else 'Despesa' }}</span></td>
-                <td>{{ cat }}</td>
-                <td class="text-end fw-semibold">${{ '%.2f'|format(total) }}</td>
-              </tr>
+            {% for tipo, categoria, total in cat_rows %}
+            <tr>
+              <td>{{ tipo }}</td>
+              <td>{{ categoria }}</td>
+              <td class="text-end">{{ total|currency }}</td>
+            </tr>
             {% else %}
-              <tr><td colspan="3" class="text-muted p-3">Sem dados.</td></tr>
+            <tr><td colspan="3" class="text-muted">Sem dados para o período.</td></tr>
             {% endfor %}
           </tbody>
         </table>
@@ -95,21 +173,27 @@
     </div>
   </div>
 
-  <div class="col-lg-6">
-    <div class="card shadow-sm">
-      <div class="card-header bg-white fw-semibold">Por conta</div>
-      <div class="table-responsive">
-        <table class="table mb-0 align-middle">
-          <thead class="table-light"><tr><th>Tipo</th><th>Conta</th><th class="text-end">Total</th></tr></thead>
+  <div class="col-md-6">
+    <div class="card mb-4">
+      <div class="card-header">Balancete por conta</div>
+      <div class="card-body p-0">
+        <table class="table table-striped mb-0">
+          <thead>
+            <tr>
+              <th>Tipo</th>
+              <th>Conta</th>
+              <th class="text-end">Total</th>
+            </tr>
+          </thead>
           <tbody>
-            {% for typ, acc, total in acc_rows %}
-              <tr>
-                <td><span class="badge text-bg-{{ 'success' if typ=='income' else 'danger' }}">{{ 'Receita' if typ=='income' else 'Despesa' }}</span></td>
-                <td>{{ acc }}</td>
-                <td class="text-end fw-semibold">${{ '%.2f'|format(total) }}</td>
-              </tr>
+            {% for tipo, conta, total in acc_rows %}
+            <tr>
+              <td>{{ tipo }}</td>
+              <td>{{ conta }}</td>
+              <td class="text-end">{{ total|currency }}</td>
+            </tr>
             {% else %}
-              <tr><td colspan="3" class="text-muted p-3">Sem dados.</td></tr>
+            <tr><td colspan="3" class="text-muted">Sem dados para o período.</td></tr>
             {% endfor %}
           </tbody>
         </table>

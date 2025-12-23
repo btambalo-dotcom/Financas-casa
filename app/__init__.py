@@ -56,16 +56,12 @@ def create_app():
 
     app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
-    # Pasta temporária para exportações (PDF/Excel/CSV) - segura no Render
-    app.config["EXPORT_FOLDER"] = os.environ.get("EXPORT_FOLDER", "/tmp/exports")
-    os.makedirs(app.config["EXPORT_FOLDER"], exist_ok=True)
-
-    # Mais estabilidade em Postgres no Render (evita quedas/EOF)
-    app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
-        "pool_pre_ping": True,
-        "pool_recycle": 280,
-        "pool_timeout": 30,
-    }
+    # Folder used for report exports (PDF/Excel/CSV).
+    # On Render, the filesystem is ephemeral, so we use /tmp by default.
+    import tempfile
+    export_folder = os.environ.get('EXPORT_FOLDER') or os.path.join(tempfile.gettempdir(), 'finance_exports')
+    os.makedirs(export_folder, exist_ok=True)
+    app.config['EXPORT_FOLDER'] = export_folder
 
     # Uploads (comprovantes)
     uploads = base_dir / "uploads"

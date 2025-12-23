@@ -405,6 +405,10 @@ def reports():
     # remove None (url_for não precisa)
     export_params = {k: v for k, v in export_params.items() if v not in (None, "", [])}
 
+    # DRE: separar receitas e despesas com base no balancete por categoria
+    dre_income_rows = [row for row in cat_rows if row[0] == "Receita"]
+    dre_expense_rows = [row for row in cat_rows if row[0] == "Despesa"]
+
     return render_template(
         "reports.html",
         month=ym,
@@ -420,6 +424,8 @@ def reports():
         total_expense=total_expense,
         net=net,
         cat_rows=cat_rows,
+        dre_income_rows=dre_income_rows,
+        dre_expense_rows=dre_expense_rows,
         acc_rows=acc_rows,
         export_params=export_params,
     )
@@ -494,8 +500,7 @@ def reports_export(fmt: str):
     net = total_income - total_expense
 
     from flask import current_app
-    export_dir = Path(current_app.config.get("EXPORT_FOLDER", "/tmp/exports"))
-    export_dir.mkdir(parents=True, exist_ok=True)
+    export_dir = Path(current_app.config["EXPORT_FOLDER"])
     export_dir.mkdir(parents=True, exist_ok=True)
     ts = datetime.now().strftime("%Y%m%d_%H%M%S")
 
@@ -747,6 +752,7 @@ def admin_diagnostico():
         info["db_host"] = getattr(url_obj, "host", None)
         info["db_driver"] = getattr(url_obj, "drivername", None)
     except Exception as e:
+        db.session.rollback()
         info["errors"].append(f"Falha ao ler URL do banco: {e}")
 
     # Tabelas (Postgres: schema public)
@@ -759,6 +765,7 @@ def admin_diagnostico():
         )).fetchall()
         info["tables"] = [r[0] for r in rows]
     except Exception as e:
+        db.session.rollback()
         # Fallback (SQLite)
         try:
             rows = db.session.execute(text(
@@ -792,6 +799,7 @@ def admin_diagnostico():
         row = db.session.execute(text("SELECT MIN(txn_date), MAX(txn_date) FROM transactions")).fetchone()
         stats["min_date"], stats["max_date"] = row[0], row[1]
     except Exception as e:
+        db.session.rollback()
         info["errors"].append(f"min/max txn_date: {e}")
 
     try:
@@ -832,6 +840,7 @@ def admin_diagnostico():
                 "desc": (t.description or "")[:80]
             })
     except Exception as e:
+        db.session.rollback()
         info["errors"].append(f"last transactions: {e}")
 
     return render_template(
