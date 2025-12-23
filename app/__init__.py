@@ -1,5 +1,6 @@
 from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
+from .utils import format_currency
 from pathlib import Path
 import os
 
@@ -73,6 +74,9 @@ def create_app():
     app.config["PWA_NAME"] = "Finanças da Casa"
 
     db.init_app(app)
+
+    # Filtros Jinja customizados
+    app.jinja_env.filters['currency'] = format_currency
 
     from .routes import bp
     app.register_blueprint(bp)

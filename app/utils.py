@@ -35,3 +35,20 @@ def admin_required(fn):
             return redirect(url_for("bp.dashboard"))
         return fn(*args, **kwargs)
     return wrapper
+
+def format_currency(value):
+    """Formata números como moeda brasileira (R$ 1.234,56).
+
+    Usado como filtro Jinja: {{ valor|currency }}.
+    Funciona mesmo se o valor vier como None ou string vazia.
+    """
+    try:
+        if value is None:
+            value = 0
+        value = float(value)
+    except (TypeError, ValueError):
+        return "R$ 0,00"
+    # Usa separador de milhar com ponto e decimal com vírgula
+    formatted = f"{value:,.2f}"
+    formatted = formatted.replace(",", "X").replace(".", ",").replace("X", ".")
+    return f"R$ {formatted}"
