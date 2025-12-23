@@ -56,6 +56,14 @@ def create_app():
         app.config["SQLALCHEMY_DATABASE_URI"] = db_url
 
     app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
+    # Safer Postgres connection pool options (avoid "SSL error: decryption failed" and bad record MAC)
+    app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
+        "pool_pre_ping": True,
+        "pool_recycle": 1800,  # recycle connections every 30 minutes
+        "pool_size": int(os.getenv("DB_POOL_SIZE", "5")),
+        "max_overflow": int(os.getenv("DB_MAX_OVERFLOW", "10")),
+    }
+
 
     # Folder used for report exports (PDF/Excel/CSV).
     # On Render, the filesystem is ephemeral, so we use /tmp by default.
